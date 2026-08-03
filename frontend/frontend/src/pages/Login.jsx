@@ -4,6 +4,8 @@ import axios from "axios";
 import { FaEnvelope, FaLock, FaEye, FaEyeSlash } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { serverUrl } from "../App";
+import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { auth } from "../../firebase";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -62,9 +64,17 @@ const Login = () => {
     }
   };
 
-  const handleGoogleLogin = () => {
+  const handleGoogleAuth = async() => {
     setGoogleLoading(true);
-    window.location.href = `${serverUrl}/auth/google`;
+    try {
+        const provider=new GoogleAuthProvider()
+        const result=await signInWithPopup(auth,provider)
+        const {data}=await axios.post(`${serverUrl}/auth/google-auth`,{email: result.user.email},
+      { withCredentials: true })
+        console.log(data)
+    } catch (error) {
+        console.log(error)
+    }
   };
 
   return (
@@ -86,7 +96,7 @@ const Login = () => {
         {/* Google Login */}
         <button
           type="button"
-          onClick={handleGoogleLogin}
+          onClick={handleGoogleAuth}
           disabled={googleLoading}
           className="w-full flex items-center justify-center gap-2 border border-gray-300 rounded-lg py-2.5 mb-4 text-gray-700 font-medium hover:bg-gray-50 disabled:opacity-60 transition"
         >

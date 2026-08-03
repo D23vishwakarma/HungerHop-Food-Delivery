@@ -6,9 +6,12 @@ import Signup from './pages/Signup'
 import Login from './pages/Login'
 import Home from './pages/Home'
 import ForgotPassword from './pages/ForgotPassword'
+import useGetCurrUser from './hooks/useGetCurrUser'
 export const serverUrl="http://localhost:8000/api/v1";
+
 function App() {
   const [count, setCount] = useState(0)
+  useGetCurrUser();
 
   return (
     <Routes>

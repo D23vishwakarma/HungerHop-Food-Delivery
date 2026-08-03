@@ -4,7 +4,8 @@ import axios from "axios";
 import { FaUser, FaEnvelope, FaLock, FaPhone, FaEye, FaEyeSlash } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { serverUrl } from "../App";
-
+import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import { auth } from "../../firebase";
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -76,10 +77,39 @@ const Signup = () => {
 
   // Redirect-based Google OAuth flow — backend handles the callback
   // and issues a session/JWT, then redirects back to the frontend.
-  const handleGoogleSignup = () => {
-    setGoogleLoading(true);
-    window.location.href = `${serverUrl}/auth/google?role=${formData.role}`;
-  };
+ const handleGoogleAuth = async () => {
+  if (!formData.phone.trim()) {
+    setError("Phone number is required");
+    return;
+  }
+
+  setError("");
+  setGoogleLoading(true);
+
+  try {
+    const provider = new GoogleAuthProvider();
+    const result = await signInWithPopup(auth, provider);
+
+    const { data } = await axios.post(
+      `${serverUrl}/auth/google-auth`,
+      {
+        fullName: result.user.displayName,
+        email: result.user.email,
+        role: formData.role,
+        phone: formData.phone,
+      },
+      { withCredentials: true }
+    );
+    console.log(data);
+
+    // handle success — e.g. navigate("/")
+  } catch (error) {
+    console.log(error);
+    setError(error.response?.data?.message || "Google sign-in failed. Please try again.");
+  } finally {
+    setGoogleLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center  bg-orange-50 px-4">
@@ -100,7 +130,7 @@ const Signup = () => {
         {/* Google Signup */}
         <button
           type="button"
-          onClick={handleGoogleSignup}
+          onClick={handleGoogleAuth}
           disabled={googleLoading}
           className="w-full flex items-center justify-center gap-2 border border-gray-300 rounded-lg py-2.5 mb-4 text-gray-700 font-medium hover:bg-gray-50 disabled:opacity-60 transition"
         >
