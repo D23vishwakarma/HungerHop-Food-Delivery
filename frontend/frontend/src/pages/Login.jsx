@@ -6,6 +6,8 @@ import { FcGoogle } from "react-icons/fc";
 import { serverUrl } from "../App";
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { auth } from "../../firebase";
+import { useDispatch } from "react-redux";
+import { setUserData } from "../redux/userSlice";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -14,7 +16,7 @@ const Login = () => {
     email: "",
     password: "",
   });
-
+  const dispatch=useDispatch();
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -51,7 +53,7 @@ const Login = () => {
         },
         { withCredentials: true }
       );
-      console.log(result.data);
+      dispatch(setUserData(result.data.data));
 
       // Login successful — redirect to home/dashboard
       navigate("/");
@@ -71,7 +73,7 @@ const Login = () => {
         const result=await signInWithPopup(auth,provider)
         const {data}=await axios.post(`${serverUrl}/auth/google-auth`,{email: result.user.email},
       { withCredentials: true })
-        console.log(data)
+        dispatch(setUserData(data.data))
     } catch (error) {
         console.log(error)
     }

@@ -6,6 +6,8 @@ import { FcGoogle } from "react-icons/fc";
 import { serverUrl } from "../App";
 import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { auth } from "../../firebase";
+import { useDispatch } from "react-redux";
+import { setUserData } from "../redux/userSlice";
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -22,7 +24,7 @@ const Signup = () => {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState("");
-
+  const dispatch=useDispatch();
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -62,7 +64,7 @@ const Signup = () => {
         },
         { withCredentials: true }
       );
-      console.log(result.data)
+      dispatch(setUserData(result.data.data))
 
       // Signup successful — redirect to login
       navigate("/login");
@@ -100,7 +102,7 @@ const Signup = () => {
       },
       { withCredentials: true }
     );
-    console.log(data);
+    dispatch(setUserData(data.data))
 
     // handle success — e.g. navigate("/")
   } catch (error) {

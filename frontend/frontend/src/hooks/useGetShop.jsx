@@ -4,13 +4,13 @@ import { serverUrl } from "../App";
 import { useDispatch } from "react-redux";
 import { setUserData } from "../redux/userSlice";
 
-function useGetCurrUser() {
+function useGetShop() {
   const dispatch=useDispatch();
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const fetchShop = async () => {
       try {
-        const result = await axios.get(`${serverUrl}/user/get`, {
+        const result = await axios.get(`${serverUrl}/shop/get`, {
           withCredentials: true,
         });
         dispatch(setUserData(result.data.data));
@@ -20,9 +20,9 @@ function useGetCurrUser() {
       }
     };
 
-    fetchUser();
+    fetchShop();
   }, []);
 
 }
 
-export default useGetCurrUser;
+export default useGetShop;
