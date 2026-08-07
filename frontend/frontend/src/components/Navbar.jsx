@@ -23,13 +23,14 @@ const Navbar = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { userData } = useSelector((state) => state.user);
+  const { myShopData } = useSelector((state) => state.owner);
   const cartItems = useSelector((state) => state.cart?.items) || [];
 
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
   const dropdownRef = useRef(null);
-  const {city}=useSelector(state=>state.user)
+  const {currCity}=useSelector(state=>state.user)
 
   // Close profile dropdown when clicking outside
   useEffect(() => {
@@ -85,12 +86,12 @@ const Navbar = () => {
           {/* Location — desktop */}
           <button className="hidden lg:flex items-center gap-1.5 text-sm text-gray-600 hover:text-orange-500 transition shrink-0">
             <MapPin size={16} className="text-orange-500" />
-            <span className="font-medium">{city}</span>
+            <span className="font-medium">{currCity}</span>
             <ChevronDown size={14} />
           </button>
 
           {/* Search — desktop */}
-          {userData.role=="customer"&&
+          {userData?.role=="customer"&&
           <form
             onSubmit={handleSearchSubmit}
             className="hidden md:flex flex-1 min-w-sm max-w-md relative border border-orange-100 rounded-full"
@@ -113,7 +114,7 @@ const Navbar = () => {
           {/* Right side */}
           <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             {/* Cart */}
-            {userData.role=="customer"&&<Link
+            {userData?.role=="customer"&&<Link
               to="/cart"
               className="relative flex items-center gap-1.5 text-gray-700 hover:text-orange-500 transition p-2"
             >
@@ -124,13 +125,14 @@ const Navbar = () => {
                 </span>
               )}
             </Link>}
-            {userData.role=="restaurant"&&<><Link
+            {userData?.role=="restaurant"&&<>
+            {myShopData&&<Link
               to="/add-item"
               className="relative flex items-center gap-1.5 text-gray-700 hover:text-orange-500 transition p-2 bg-orange-400/10 rounded-full"
             >
               <PlusCircle className="w-5 h-5" />
               <span className="hidden md:inline text-sm font-medium">Add Item</span>
-            </Link>
+            </Link>}
             <Link
               to="/orders"
               className="relative flex items-center gap-1.5 text-gray-700 hover:text-orange-500 transition p-2"
@@ -210,7 +212,7 @@ const Navbar = () => {
             )}
 
             {/* Mobile menu toggle */}
-            {userData.role=="customer"&&<button
+            {userData?.role=="customer"&&<button
               onClick={() => setMobileOpen((m) => !m)}
               className="md:hidden text-gray-700 p-1"
             >
@@ -220,7 +222,7 @@ const Navbar = () => {
         </div>
 
         {/* Mobile search + menu */}
-        {mobileOpen &&userData.role=="customer"&& (
+        {mobileOpen &&userData?.role=="customer"&& (
           <div className="md:hidden pb-4 space-y-3">
             <form onSubmit={handleSearchSubmit} className="relative">
               <Search
@@ -238,7 +240,7 @@ const Navbar = () => {
 
             <button className="flex items-center gap-1.5 text-sm text-gray-600 px-1">
               <MapPin size={16} className="text-orange-500" />
-              <span className="font-medium">{city}</span>
+              <span className="font-medium">{currCity}</span>
               <ChevronDown size={14} />
             </button>
 
