@@ -4,10 +4,11 @@ import { categories } from '../category'
 import CategoryCard from './CategoryCard'
 import ShopCard from './ShopCard'
 import { useSelector } from 'react-redux'
+import ItemCard from './ItemCard'
 
 function UserDashBoard() {
     const [selectedCategory, setSelectedCategory] = useState(null)
-    const { currCity, shops } = useSelector(state => state.user)
+    const { currCity, shops, items } = useSelector(state => state.user)
 
     const handleSelectCategory = (categoryName) => {
         setSelectedCategory(prev => prev === categoryName ? null : categoryName)
@@ -16,7 +17,7 @@ function UserDashBoard() {
 
     return (
         <div className='bg-orange-50/60 min-h-screen w-full'>
-            <Navbar/>
+            <Navbar />
 
             {/* Categories */}
             <section className="max-w-6xl mx-auto px-4 sm:px-6 pt-8 pb-2">
@@ -44,7 +45,7 @@ function UserDashBoard() {
             </div>
 
             {/* Nearby shops */}
-            <section className="max-w-6xl mx-auto px-4 sm:px-6 pt-2 pb-14">
+            <section className="max-w-6xl mx-auto px-4 sm:px-6 pt-2 pb-10">
                 <h2 className="text-xl font-bold text-gray-800 tracking-tight">
                     Best Shops in <span className="text-orange-500">{currCity || "your area"}</span>
                 </h2>
@@ -58,13 +59,41 @@ function UserDashBoard() {
                         <p className="text-gray-400 text-sm mt-1">Check back soon as more restaurants join HungerHop.</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                        {shops.map((shop) => (
-                            <ShopCard key={shop._id} shop={shop} />
-                        ))}
+                    <div className="relative">
+                        <div className="flex gap-5 overflow-x-auto pb-3 snap-x snap-mandatory scrollbar-hide">
+                            {shops.map((shop) => (
+                                <div key={shop._id} className="snap-start shrink-0 w-56 sm:w-64">
+                                    <ShopCard shop={shop} />
+                                </div>
+                            ))}
+                        </div>
+                        <div className="pointer-events-none absolute right-0 top-0 bottom-3 w-12 bg-gradient-to-l from-orange-50/60 to-transparent" />
                     </div>
                 )}
             </section>
+            {items && items.length > 0 && (
+                <>
+                    <section className="max-w-6xl mx-auto px-4 sm:px-6 pb-2">
+                        <h2 className="text-xl font-bold text-gray-800 tracking-tight mb-5">
+                            Suggested Food Items
+                        </h2>
+                        <div className="relative">
+                            <div className="flex gap-4 overflow-x-auto pb-3 snap-x snap-mandatory scrollbar-hide">
+                                {items.map((item) => (
+                                    <div key={item._id} className="snap-start">
+                                        <ItemCard item={item} mode="customer" />
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="pointer-events-none absolute right-0 top-0 bottom-3 w-12 bg-gradient-to-l from-orange-50/60 to-transparent" />
+                        </div>
+                    </section>
+
+                    <div className="max-w-6xl mx-auto px-4 sm:px-6">
+                        <div className="h-px bg-orange-200/60 my-4" />
+                    </div>
+                </>
+            )}
         </div>
     )
 }

@@ -2,6 +2,7 @@ import axios from 'axios'
 import React, { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { setCurrAddress, setCurrCity, setCurrState } from '../redux/userSlice'
+import { setAddress, setLocation } from '../redux/mapSlice'
 
 function UseGetCity() {
     const dispatch = useDispatch()
@@ -17,6 +18,7 @@ function UseGetCity() {
             async (position) => {
                 try {
                     const { latitude, longitude } = position.coords
+                    dispatch(setLocation({lati:latitude,long:longitude}))
                     const result = await axios.get(
                         `https://api.geoapify.com/v1/geocode/reverse?lat=${latitude}&lon=${longitude}&format=json&apiKey=${import.meta.env.VITE_GEOAPIKEY}`
                     )
@@ -24,6 +26,7 @@ function UseGetCity() {
                     dispatch(setCurrCity(place.city))
                     dispatch(setCurrState(place.state))
                     dispatch(setCurrAddress(place.address_line2 || place.address_line1))
+                    dispatch(setAddress(place.address_line2))
                 } catch (err) {
                     console.error("Reverse geocoding failed:", err)
                 }

@@ -1,8 +1,74 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import { Pencil, Trash2 } from 'lucide-react'
+import { Pencil, Trash2, Plus } from 'lucide-react'
+import StarRating from './StarRating'
+import { addToCart } from '../redux/userSlice';
+import { useDispatch } from 'react-redux';
 
-function ItemCard({ item, onDelete }) {
+function ItemCard({ item, onDelete, mode = "owner" }) {
+    const hasRating = item.rating?.count > 0;
+    const dispatch=useDispatch();
+
+    const handleAddToCart = (e) => {
+    e.preventDefault() // in case ItemCard is ever wrapped in a Link
+    dispatch(addToCart({
+        id: item._id,
+        name: item.name,
+        price: item.price,
+        image: item.image,
+        foodtype: item.foodtype,
+        shop: item.shop,
+        quantity: 1
+    }))
+}
+
+    if (mode === "customer") {
+        return (
+            <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden shrink-0 w-40 sm:w-44 hover:shadow-md transition-shadow">
+                <div className="relative h-28 bg-gray-100">
+                    <img
+                        src={item.image}
+                        alt={item.name}
+                        className="w-full h-full object-cover"
+                    />
+                    <span
+                        className={`absolute top-2 left-2 w-4 h-4 border-2 rounded-sm flex items-center justify-center bg-white ${
+                            item.foodtype === "veg" ? "border-green-600" : "border-red-600"
+                        }`}
+                    >
+                        <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                                item.foodtype === "veg" ? "bg-green-600" : "bg-red-600"
+                            }`}
+                        />
+                    </span>
+                </div>
+
+                <div className="p-3">
+                    <p className="text-[11px] text-orange-500 font-medium mb-0.5">{item.category}</p>
+                    <p className="text-sm font-semibold text-gray-800 truncate">{item.name}</p>
+
+                    {hasRating ? (
+                        <div className="flex items-center gap-1.5 mt-1">
+                            <StarRating rating={item.rating.average} size={12} />
+                            <span className="text-[11px] text-gray-400">({item.rating.count})</span>
+                        </div>
+                    ) : (
+                        <p className="text-[11px] text-gray-400 mt-1">No ratings yet</p>
+                    )}
+
+                    <div className="flex items-center justify-between mt-2">
+                        <p className="text-gray-800 text-sm font-bold">₹{item.price}</p>
+                        <button onClick={handleAddToCart} className="flex items-center gap-1 bg-orange-50 hover:bg-orange-100 text-orange-600 text-xs font-semibold px-2 py-1 rounded-md transition">
+                            <Plus className="w-3 h-3" />
+                            Add
+                        </button>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
     return (
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden group">
             <div className="relative h-28 bg-gray-100">
@@ -27,7 +93,17 @@ function ItemCard({ item, onDelete }) {
             <div className="p-3">
                 <p className="text-[11px] text-orange-500 font-medium mb-0.5">{item.category}</p>
                 <p className="text-sm font-semibold text-gray-800 truncate">{item.name}</p>
-                <p className="text-gray-700 text-sm font-semibold mt-0.5">₹{item.price}</p>
+
+                {hasRating ? (
+                    <div className="flex items-center gap-1.5 mt-1">
+                        <StarRating rating={item.rating.average} size={12} />
+                        <span className="text-[11px] text-gray-400">({item.rating.count})</span>
+                    </div>
+                ) : (
+                    <p className="text-[11px] text-gray-400 mt-1">No ratings yet</p>
+                )}
+
+                <p className="text-gray-700 text-sm font-semibold mt-1">₹{item.price}</p>
 
                 <div className="flex gap-2 mt-3">
                     <Link

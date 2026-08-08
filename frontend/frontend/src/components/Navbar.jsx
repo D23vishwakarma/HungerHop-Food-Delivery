@@ -22,9 +22,8 @@ import { setUserData } from "../redux/userSlice";
 const Navbar = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { userData } = useSelector((state) => state.user);
+  const { userData ,cartItems} = useSelector((state) => state.user);
   const { myShopData } = useSelector((state) => state.owner);
-  const cartItems = useSelector((state) => state.cart?.items) || [];
 
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -70,7 +69,7 @@ const Navbar = () => {
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-orange-100 shadow-sm">
+    <header className="sticky top-0 z-2000 bg-white/95 backdrop-blur-sm border-b border-orange-100 shadow-sm">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-16 gap-4">
           {/* Left side */}

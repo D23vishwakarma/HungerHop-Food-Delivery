@@ -71,3 +71,21 @@ export const deleteItem = asyncHandler(async (req, res) => {
 
     return res.status(200).json(new ApiResponse(200, {}, "Item deleted successfully"));
 });
+export const getItemByCity = asyncHandler(async (req, res) => {
+    const { city } = req.params;
+    if (!city) {
+        throw new ApiError(400, "City is required");
+    }
+    const shops = await Shop.find({
+        city: { $regex: new RegExp(`^${city}$`, "i") }
+    }).populate("items")
+    if(!shops){
+        throw new ApiError(400,"SHop not found")
+    }
+    const shopIds=shops.map((shop)=>shop._id);
+    const items=await Item.find({shop:{
+        $in:shopIds
+    }})
+    return res.status(200).json(new ApiResponse(200,items,"Items fetched by city"))
+
+})

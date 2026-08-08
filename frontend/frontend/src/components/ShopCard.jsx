@@ -6,25 +6,23 @@ function ShopCard({ shop }) {
     return (
         <Link
             to={`/shop/${shop._id}`}
-            className="bg-white rounded-2xl overflow-hidden shadow-sm ring-1 ring-black/5 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group"
+            className="block bg-white rounded-2xl overflow-hidden shadow-sm ring-1 ring-black/5 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group"
         >
-            <div className="h-36 sm:h-40 w-full bg-gray-100 overflow-hidden">
+            <div className="relative h-32 sm:h-36 w-full bg-gray-100 overflow-hidden">
                 <img
                     src={shop.image}
                     alt={shop.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 />
+                <span className="absolute top-2.5 right-2.5 flex items-center gap-1 bg-white/95 backdrop-blur-sm text-green-700 text-[11px] font-bold px-2 py-1 rounded-full shadow-sm">
+                    <Star className="w-3 h-3 fill-green-600 text-green-600" />
+                    {shop.rating || "New"}
+                </span>
             </div>
-            <div className="p-4">
-                <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-bold text-gray-800 truncate">{shop.name}</h3>
-                    <span className="shrink-0 flex items-center gap-1 bg-green-600 text-white text-xs font-semibold px-1.5 py-0.5 rounded">
-                        <Star className="w-3 h-3 fill-white" />
-                        {shop.rating || "New"}
-                    </span>
-                </div>
-                <p className="text-sm text-gray-500 mt-1 truncate">{shop.city}, {shop.state}</p>
-                <div className="flex items-center gap-1.5 text-xs text-gray-400 mt-2">
+            <div className="p-3.5">
+                <h3 className="font-bold text-gray-800 truncate">{shop.name}</h3>
+                <p className="text-xs text-gray-500 mt-0.5 truncate">{shop.city}, {shop.state}</p>
+                <div className="flex items-center gap-1.5 text-xs text-gray-400 mt-2 pt-2 border-t border-gray-50">
                     <Clock className="w-3.5 h-3.5" />
                     <span>25–35 mins</span>
                 </div>

@@ -15,6 +15,9 @@ import OwnerDashBoard from './components/OwnerDashBoard'
 import AddItem from './pages/AddItem'
 import EditItem from './pages/EditItem'
 import useGetShopByCity from './hooks/useGetShopBycity'
+import useGetItemByCity from './hooks/useGetItemByCity'
+import CartPage from './pages/CartPage'
+import Checkout from './pages/Checkout'
 export const serverUrl="http://localhost:8000/api/v1";
 
 function App() {
@@ -22,6 +25,7 @@ function App() {
   useGetCurrUser();
   UseGetCity();
   useGetShopByCity();
+  useGetItemByCity();
   const {userData}=useSelector(state=>state.user);
   return (
     <Routes>
@@ -33,6 +37,8 @@ function App() {
       <Route path='/owner-dashboard' element={<OwnerDashBoard/>}/>
       <Route path='/add-item' element={<AddItem/>}/>
       <Route path='/edit-item/:itemId' element={<EditItem/>}/>
+      <Route path='/cart' element={<CartPage/>}/>
+      <Route path='/checkout' element={<Checkout/>}/>
     </Routes>
   )
 }
