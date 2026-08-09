@@ -1,47 +1,52 @@
 import mongoose from "mongoose";
 
-const shopOrderItemSchema=new mongoose.Schema({
-    item:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:"Item"
+const shopOrderItemSchema = new mongoose.Schema({
+    item: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Item"
     },
-    price:Number,
-    quantity:Number
-},{timestamps:true})
+    name: String,
+    price: Number,
+    quantity: Number
+}, { timestamps: true })
 
-const shopOrderSchema=new mongoose.Schema({
-    shop:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:"Shop"
+const shopOrderSchema = new mongoose.Schema({
+    shop: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Shop"
     },
-    owner:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:"User"
+    owner: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User"
     },
-    subtotal:{type:Number},
-    shopOrderItems:[shopOrderItemSchema]
-},{timestamps:true})
+    subtotal: { type: Number },
+    shopOrderItems: [shopOrderItemSchema],
+    status:{
+        type: String,
+        enum: ["pending", "preparing", "out for delivery", "delivered"],
+        default: "pending"
+    }
+}, { timestamps: true })
 
-const orderSchema=new mongoose.Schema({
-    user:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:"User"
+const orderSchema = new mongoose.Schema({
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User"
     },
-    paymentMethod:{
-        type:String,
-        enum:["cod","online"],
-        required:true
+    paymentMethod: {
+        type: String,
+        enum: ["cod", "online"],
+        required: true
     },
-    deliveryAddress:{
-        type:String,
-        longitude:Number,
-        Latitude:Number,
-        required:true
+    deliveryAddress: {
+        text: { type: String, required: true },
+        latitude: { type: Number, required: true },
+        longitude: { type: Number, required: true }
     },
-    totalAmount:{
-        type:Number
+    totalAmount: {
+        type: Number
     },
-    shopOrder:[shopOrderSchema]
-},{timestamps:true})
+    shopOrders: [shopOrderSchema]
+}, { timestamps: true })
 
-export const Order=mongoose.model("Order",orderSchema);
+export const Order = mongoose.model("Order", orderSchema);
