@@ -10,9 +10,7 @@ export const placeOrder=asyncHandler(async(req,res)=>{
         throw new ApiError(400,"Full delivery address required")
     }
     const groupItemByShop={}
-    cartItems.forEach(element => {
-        
-    });(item=>{
+    cartItems.forEach(item=>{
         const shopId=item.shop
         if(!groupItemByShop[shopId]){
             groupItemByShop[shopId]=[]
