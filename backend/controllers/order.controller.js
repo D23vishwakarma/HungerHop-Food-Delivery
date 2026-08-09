@@ -78,11 +78,13 @@ export const updateOrderStatus=asyncHandler(async(req,res)=>{
     if(!order){
         throw new ApiError(400,"Order not Found")
     }
-    const shopOrder=await order.shopOrders.find(o=>o.shop==shopId)
+    const shopOrder=order.shopOrders.find(o=>o.shop.toString()==shopId)
     if(!shopOrder){
         throw new ApiError(400,"shop Order not Found")
     }
     shopOrder.status=status;
-    shopOrder.populate("shopOrderItems","name price image quantity")
-    return res.status(200).json(new ApiResponse(200,shopOrder,"Status updated"))
+    await shopOrder.save();
+    await order.save();
+    
+    return res.status(200).json(new ApiResponse(200,shopOrder.status,"Status updated"))
 })

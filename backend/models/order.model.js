@@ -46,7 +46,12 @@ const orderSchema = new mongoose.Schema({
     totalAmount: {
         type: Number
     },
-    shopOrders: [shopOrderSchema]
+    shopOrders: [shopOrderSchema],
+    assignment:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:"DeliveryAssignment",
+        default:null
+    }
 }, { timestamps: true })
 
 export const Order = mongoose.model("Order", orderSchema);
