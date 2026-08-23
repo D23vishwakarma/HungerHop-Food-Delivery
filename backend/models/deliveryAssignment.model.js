@@ -9,7 +9,7 @@ const deliverySchema=new mongoose.Schema({
         type:mongoose.Schema.Types.ObjectId,
         ref:"Shop"
     },
-    shopOrder:{
+    shopOrderId:{
         type:mongoose.Schema.Types.ObjectId,
         required:true
     },
@@ -26,9 +26,10 @@ const deliverySchema=new mongoose.Schema({
     },
     status:{
         type:String,
-        enum:["assigned","broadcasted","expired"],
+        enum:["broadcasted", "assigned", "delivered", "expired", "cancelled"],
         default:"broadcasted"
-    }
+    },
+    acceptedAt:Date
 },{timestamps:true})
 
 export const DeliveryAssignment=mongoose.model("DeliveryAssignment",deliverySchema);

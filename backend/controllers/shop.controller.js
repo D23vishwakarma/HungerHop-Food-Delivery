@@ -49,7 +49,7 @@ export const getShop = asyncHandler(async (req, res) => {
     }
     return res
         .status(200)
-        .json(new ApiResponse(200, shop, "Shop has been fetched successfully"));
+        .json(new ApiResponse(200, shop||null, "Shop has been fetched successfully"));
 });
 export const getShopbyCity=asyncHandler(async(req,res)=>{
     const {city}=req.params

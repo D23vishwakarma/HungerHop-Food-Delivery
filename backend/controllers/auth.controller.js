@@ -60,12 +60,17 @@ export const login=asyncHandler(async(req,res)=>{
         new ApiResponse(200,user,"User Logged in successfully")
     )
 })
-export const logout=asyncHandler(async(req,res)=>{
-    res.clearCookie("token");
+export const logout = asyncHandler(async (req, res) => {
+    res.clearCookie("token", {
+        httpOnly: true,
+        secure: true,
+        sameSite: "none"
+    });
+
     return res.status(200).json(
-        new ApiResponse(200,{},"user logged out")
-    )
-})
+        new ApiResponse(200, {}, "User logged out")
+    );
+});
 export const sentOtpMail=asyncHandler(async(req,res)=>{
     const {email}=req.body
     const user=await User.findOne({email}).select("-password");

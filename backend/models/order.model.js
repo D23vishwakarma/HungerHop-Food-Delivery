@@ -21,10 +21,20 @@ const shopOrderSchema = new mongoose.Schema({
     },
     subtotal: { type: Number },
     shopOrderItems: [shopOrderItemSchema],
-    status:{
+    status: {
         type: String,
         enum: ["pending", "preparing", "out for delivery", "delivered"],
         default: "pending"
+    },
+    assignedDeliveryBoy: {       
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: null
+    },
+    assignment: {                 
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "DeliveryAssignment",
+        default: null
     }
 }, { timestamps: true })
 

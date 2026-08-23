@@ -21,6 +21,8 @@ import Checkout from './pages/Checkout'
 import OrderPlaced from './pages/OrderPlaced'
 import MyOrders from './pages/MyOrders'
 import useGetMyOrders from './hooks/useGetMyOrders'
+import UseUpdateLocation from './hooks/useUpdateLocation'
+import TrackOrder from './pages/TrackOrder'
 export const serverUrl = "http://localhost:8000/api/v1";
 
 function App() {
@@ -30,6 +32,7 @@ function App() {
   useGetShopByCity();
   useGetItemByCity();
   useGetMyOrders();
+  UseUpdateLocation();
   const { userData } = useSelector(state => state.user);
   return (
     <Routes>
@@ -45,6 +48,7 @@ function App() {
       <Route path='/checkout' element={<Checkout />} />
       <Route path='/order-placed' element={<OrderPlaced />} />
       <Route path='/orders' element={<MyOrders />} />
+      <Route path='/track-order/:orderId' element={<TrackOrder />} />
     </Routes>
   )
 }
