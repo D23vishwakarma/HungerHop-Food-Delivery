@@ -22,7 +22,11 @@ function DeliveryDashBoard() {
     const [acceptingId, setAcceptingId] = useState(null)
     const [justAcceptedId, setJustAcceptedId] = useState(null)
     const [currOrder, setCurrOrder] = useState(undefined) // undefined = not fetched yet, null = confirmed none
-    const [markingDelivered, setMarkingDelivered] = useState(false)
+    const [otpSent, setOtpSent] = useState(false)
+    const [otpInput, setOtpInput] = useState("")
+    const [sendingOtp, setSendingOtp] = useState(false)
+    const [verifyingOtp, setVerifyingOtp] = useState(false)
+    const [otpError, setOtpError] = useState("")
 
     const fetchAssignments = async () => {
         try {
@@ -82,23 +86,44 @@ function DeliveryDashBoard() {
         }
     }
 
-    const handleMarkDelivered = async () => {
+    const handleSendOtp = async () => {
         if (!currOrder) return
-        setMarkingDelivered(true)
+        setSendingOtp(true)
+        setOtpError("")
         try {
-            await axios.put(
-                `${serverUrl}/order/updatestatus/${currOrder._id}/${currOrder.shopOrder.shop}`,
-                { status: "delivered" },
+            await axios.post(
+                `${serverUrl}/order/senddeliveryotp`,
+                { orderId: currOrder._id, shopOrderId: currOrder.shopOrder._id },
                 { withCredentials: true }
             )
-            //this assignment is now closed out server-side, so the next getCurrOrder
-            // call will correctly return null and the dashboard falls back to the broadcast list
+            setOtpSent(true)
+        } catch (error) {
+            alert(error.response?.data?.message || "Failed to send OTP")
+        } finally {
+            setSendingOtp(false)
+        }
+    }
+
+    const handleVerifyOtp = async () => {
+        if (!currOrder || !otpInput) return
+        setVerifyingOtp(true)
+        setOtpError("")
+        try {
+            await axios.post(
+                `${serverUrl}/order/verify-otp`,
+                { orderId: currOrder._id, shopOrderId: currOrder.shopOrder._id, otp: otpInput },
+                { withCredentials: true }
+            )
+            // ✅ assignment is deleted server-side on success, so the next getCurrOrder
+            // call correctly returns null and the dashboard falls back to the broadcast list
+            setOtpSent(false)
+            setOtpInput("")
             await getCurrOrder()
             fetchAssignments()
         } catch (error) {
-            alert(error.response?.data?.message || "Failed to mark as delivered")
+            setOtpError(error.response?.data?.message || "Invalid or expired OTP")
         } finally {
-            setMarkingDelivered(false)
+            setVerifyingOtp(false)
         }
     }
 
@@ -227,20 +252,59 @@ function DeliveryDashBoard() {
                                 )}
                             </div>
 
-                            {/* Mark as Delivered */}
-                            <button
-                                onClick={handleMarkDelivered}
-                                disabled={markingDelivered}
-                                className="w-full mt-4 flex items-center justify-center gap-1.5 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold px-4 py-3 rounded-xl disabled:opacity-60 transition-all active:scale-[0.98]"
-                            >
-                                {markingDelivered ? (
-                                    "Marking as delivered…"
-                                ) : (
-                                    <>
-                                        <CheckCircle2 className="w-4 h-4" /> Mark as Delivered
-                                    </>
-                                )}
-                            </button>
+                            {/* Delivery OTP */}
+                            {!otpSent ? (
+                                <button
+                                    onClick={handleSendOtp}
+                                    disabled={sendingOtp}
+                                    className="w-full mt-4 flex items-center justify-center gap-1.5 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold px-4 py-3 rounded-xl disabled:opacity-60 transition-all active:scale-[0.98]"
+                                >
+                                    {sendingOtp ? (
+                                        "Sending OTP…"
+                                    ) : (
+                                        <>
+                                            <CheckCircle2 className="w-4 h-4" /> Send Delivery OTP
+                                        </>
+                                    )}
+                                </button>
+                            ) : (
+                                <div className="mt-4 bg-green-50 rounded-xl p-4 border border-green-100">
+                                    <p className="text-xs font-semibold text-green-700 mb-2">
+                                        OTP sent to the customer — ask them for the 4-digit code
+                                    </p>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            inputMode="numeric"
+                                            maxLength={4}
+                                            value={otpInput}
+                                            onChange={(e) => {
+                                                setOtpInput(e.target.value.replace(/\D/g, ""))
+                                                setOtpError("")
+                                            }}
+                                            placeholder="4-digit OTP"
+                                            className="flex-1 text-center tracking-[0.3em] text-lg font-semibold border border-green-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-300"
+                                        />
+                                        <button
+                                            onClick={handleVerifyOtp}
+                                            disabled={verifyingOtp || otpInput.length !== 4}
+                                            className="bg-green-500 hover:bg-green-600 text-white text-sm font-semibold px-4 py-2 rounded-lg disabled:opacity-50 transition-colors"
+                                        >
+                                            {verifyingOtp ? "Verifying…" : "Verify"}
+                                        </button>
+                                    </div>
+                                    {otpError && (
+                                        <p className="text-xs text-red-500 mt-2">{otpError}</p>
+                                    )}
+                                    <button
+                                        onClick={handleSendOtp}
+                                        disabled={sendingOtp}
+                                        className="text-xs text-green-600 font-medium mt-2 hover:underline disabled:opacity-50"
+                                    >
+                                        {sendingOtp ? "Resending…" : "Resend OTP"}
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
 

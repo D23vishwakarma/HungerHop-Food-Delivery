@@ -89,3 +89,33 @@ export const getItemByCity = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200,items,"Items fetched by city"))
 
 })
+export const getItemByShop=asyncHandler(async(req,res)=>{
+    const {shopId}=req.params;
+    const shop=await Shop.findById(shopId).populate("items")
+    if(!shop){
+        throw new ApiError(400,"Shop not found")
+    }
+    return res.status(200).json(new ApiResponse(200,{shop,items:shop.items}))
+})
+export const searchItems=asyncHandler(async(req,res)=>{
+    const {query,city}=req.query;
+    if (!city) {
+        throw new ApiError(400, "City is required");
+    }
+    const shops = await Shop.find({
+        city: { $regex: new RegExp(`^${city}$`, "i") }
+    }).populate("items")
+    if(shops.length==0){
+        throw new ApiError(400,"Shop not found")
+    }
+    const shopIds=shops.map(s=>s._id);
+    const items=await Item.find({
+        shop:{$in:shopIds},
+        $or:[
+            {name:{$regex :query ,$options:"i"}},
+            {category:{$regex :query ,$options:"i"}}
+        ]
+    }).populate("shop","name image")
+    return res.status(200).json(new ApiResponse(200,items,"Items fetched successfully"))
+
+})

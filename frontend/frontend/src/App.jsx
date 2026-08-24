@@ -23,6 +23,7 @@ import MyOrders from './pages/MyOrders'
 import useGetMyOrders from './hooks/useGetMyOrders'
 import UseUpdateLocation from './hooks/useUpdateLocation'
 import TrackOrder from './pages/TrackOrder'
+import Shop from './pages/Shop'
 export const serverUrl = "http://localhost:8000/api/v1";
 
 function App() {
@@ -49,6 +50,7 @@ function App() {
       <Route path='/order-placed' element={<OrderPlaced />} />
       <Route path='/orders' element={<MyOrders />} />
       <Route path='/track-order/:orderId' element={<TrackOrder />} />
+      <Route path='/shop/:shopId' element={<Shop/>}/>
     </Routes>
   )
 }

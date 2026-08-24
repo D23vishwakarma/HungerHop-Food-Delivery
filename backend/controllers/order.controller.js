@@ -5,6 +5,16 @@ import { DeliveryAssignment } from "../models/deliveryAssignment.model.js";
 import { Order } from "../models/order.model.js";
 import { Shop } from "../models/shop.model.js";
 import { User } from "../models/user.model.js";
+import { sentDeliveryOtp } from "../utils/mail.js";
+import Razorpay from 'razorpay';
+import dotenv from 'dotenv'
+import { orderRouter } from "../routes/order.route.js";
+dotenv.config()
+
+let instance = new Razorpay({
+  key_id: process.env.RAZORPAY_API_KEY,
+  key_secret: process.env.RAZORPAY_API_SECRET,
+});
 
 export const placeOrder = asyncHandler(async (req, res) => {
     const { cartItems, paymentMethod, deliveryAddress, totalAmount } = req.body;
@@ -41,6 +51,27 @@ export const placeOrder = asyncHandler(async (req, res) => {
             }))
         }
     }))
+
+    if(paymentMethod=="online"){
+        const razorOrder=await instance.orders.create({
+            amount:Math.round(totalAmount*100),
+            currency:'INR',
+            receipt:`receipt_${Date.now()}`
+        })
+        const order = await Order.create({
+        user: req.userId,
+        paymentMethod,
+        deliveryAddress, 
+        totalAmount,
+        shopOrders,
+        razorpayOrderId:(await razorOrder).id,
+        payment:false
+    })
+    return res.status(200).json(new ApiResponse(200,{
+        razorOrder,
+        orderId:order._id
+    },"Online payment order fetched"))
+    }
     const order = await Order.create({
         user: req.userId,
         paymentMethod,
@@ -53,6 +84,24 @@ export const placeOrder = asyncHandler(async (req, res) => {
     return res.status(201).json(new ApiResponse(201, order, "Order placed"))
 
 })
+export const verifyPayment=asyncHandler(async(req,res)=>{
+    const {razorpay_paymentId,orderId}=req.body;
+    const payment=await instance.payments.fetch(razorpay_paymentId);
+    if(!payment || payment.status!="captured"){
+        throw new ApiError(400,"Payment not captured")
+    }
+    const order=await Order.findById(orderId)
+    if(!order){
+        throw new ApiError(400,"Order not found")
+    }
+    order.payment=true;
+    order.razorpayPaymentId=razorpay_paymentId
+    await order.save()
+    await order.populate("shopOrders.shopItems.item","name price image")
+    await order.populate("shopOrders.shop","name")
+    return res.status(200).json(new ApiResponse(200,order,"Order verified successfully"))
+})
+
 export const getMyorders = asyncHandler(async (req, res) => {
     const user = await User.findById(req.userId);
     if (user.role == "customer") {
@@ -306,4 +355,43 @@ export const getOrderById=asyncHandler(async(req,res)=>{
         throw new ApiError(400,"Order not found")
     }
     return res.status(200).json(new ApiResponse(200,order,"order fetched succesfully"))
+})
+export const sendDeliveryOtp=asyncHandler(async(req,res)=>{
+    const {orderId,shopOrderId}=req.body;
+    const order=await Order.findById(orderId).populate("user")
+    if(!order){
+        throw new ApiError(400,"Order not found")
+    }
+    const shopOrder=order.shopOrders.id(shopOrderId)
+    if(!shopOrder){
+        throw new ApiError(400,"shopOrder not found")
+    }
+    const otp=Math.floor(Math.random()*9000+1000).toString();
+    shopOrder.deliveryOtp=otp
+    shopOrder.otpExpires=Date.now() + 5*60*1000
+    await order.save()
+    await sentDeliveryOtp(order.user,otp)
+
+    return res.status(200).json(new ApiResponse(200,{},"Otp sent successfully"))
+
+})
+export const verifyOtp=asyncHandler(async(req,res)=>{
+    const {orderId,shopOrderId,otp}=req.body;
+    const order=await Order.findById(orderId).populate("user")
+    const shopOrder=order.shopOrders.id(shopOrderId)
+    if(!order ||!shopOrder){
+        throw new ApiError(400,"Order or shopOrder not found")
+    }
+    if(shopOrder.deliveryOtp!==otp||!shopOrder.otpExpires || shopOrder.otpExpires<Date.now()){
+        throw new ApiError(400,"Invalid or expired OTP")
+    }
+    shopOrder.status="delivered"
+    shopOrder.deliveredAt=Date.now()
+    await order.save()
+    await DeliveryAssignment.deleteOne({
+        shopOrderId,
+        order:orderId,
+        assignedTo:shopOrder.assignedDeliveryBoy
+    })
+    return res.status(200).json(new ApiResponse(200,{},"Otp verified successfully"))
 })

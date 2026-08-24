@@ -5,7 +5,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import axios from 'axios'
 import Navbar from '../components/Navbar'
-import { MapPin, LocateFixed, Search, Wallet, Smartphone, ShoppingBag } from 'lucide-react'
+import { MapPin, LocateFixed, Search, Wallet, Smartphone, ShoppingBag, Currency } from 'lucide-react'
 import { setLocation, setAddress } from '../redux/mapSlice'
 import { serverUrl } from '../App'
 import { useNavigate } from 'react-router-dom'
@@ -168,13 +168,41 @@ function Checkout() {
                 paymentMethod,
                 totalAmount
             }, { withCredentials: true })
-        dispatch(addMyOrders(result.data.data));
+        if(paymentMethod=="cod"){
+            dispatch(addMyOrders(result.data.data));
            navigate("/order-placed", { state: { order: result.data.data } })
+        }
+        else{
+            const orderId=result.data.data.orderId;
+            const razorOrder=result.data.data.razorOrder;
+            openRazorpayWindow(orderId,razorOrder);
+        }
         } catch (error) {
             console.log(error)
         } finally {
             setPlacing(false)
         }
+    }
+    const openRazorpayWindow=(orderId,razorOrder)=>{
+        const options={
+            key:import.meta.env.VITE_RAZORPAY_API_KEY,
+            amount:razorOrder.amount,
+            currency:'INR',
+            name:"HungerHop",
+            description:"Food Delivery Website",
+            order_id:razorOrder.id,
+            handler:async function (res) {
+                try {
+                    const result=await axios.post(`${serverUrl}/order/verify-payment`,{razorpay_paymentId:res.razorpay_paymentId,orderId},{withCredentials:true})
+                    dispatch(addMyOrders(result.data.data));
+                    navigate("/order-placed", { state: { order: result.data.data } })
+                } catch (error) {
+                    console.log(error)
+                }
+            }
+        }
+        const rzp=new window.Razorpay(options)
+        rzp.open()
     }
 
     return (

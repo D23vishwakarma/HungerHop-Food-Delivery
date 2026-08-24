@@ -17,7 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { serverUrl } from "../App";
-import { setUserData } from "../redux/userSlice";
+import { setSearchItems, setUserData } from "../redux/userSlice";
 
 const Navbar = () => {
   const dispatch = useDispatch();
@@ -61,12 +61,29 @@ const Navbar = () => {
     }
   };
 
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    if (searchValue.trim()) {
-      navigate(`/search?q=${encodeURIComponent(searchValue.trim())}`);
+  const handleSearch = async() => {
+    if(!searchValue.trim()){
+      dispatch(setSearchItems(null))
+       return;
+    }
+    try {
+      const result=await axios.get(`${serverUrl}/item/searchitems?query=${searchValue.trim()}&city=${currCity}`,{withCredentials:true})
+      console.log(result.data.data)
+      dispatch(setSearchItems(result.data.data))
+    } catch (error) {
+      console.log(error?.message)
     }
   };
+  const handleSearchSubmit=(e)=>{
+    e.preventDefault();
+    handleSearch();
+  }
+useEffect(() => {
+    const timeout = setTimeout(() => {
+        handleSearch()
+    }, 350)
+    return () => clearTimeout(timeout)
+}, [searchValue, currCity])
 
   return (
     <header className="sticky top-0 z-2000 bg-white/95 backdrop-blur-sm border-b border-orange-100 shadow-sm">
