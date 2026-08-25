@@ -12,8 +12,8 @@ import { orderRouter } from "../routes/order.route.js";
 dotenv.config()
 
 let instance = new Razorpay({
-  key_id: process.env.RAZORPAY_API_KEY,
-  key_secret: process.env.RAZORPAY_API_SECRET,
+    key_id: process.env.RAZORPAY_API_KEY,
+    key_secret: process.env.RAZORPAY_API_SECRET,
 });
 
 export const placeOrder = asyncHandler(async (req, res) => {
@@ -52,25 +52,25 @@ export const placeOrder = asyncHandler(async (req, res) => {
         }
     }))
 
-    if(paymentMethod=="online"){
-        const razorOrder=await instance.orders.create({
-            amount:Math.round(totalAmount*100),
-            currency:'INR',
-            receipt:`receipt_${Date.now()}`
+    if (paymentMethod == "online") {
+        const razorOrder = await instance.orders.create({
+            amount: Math.round(totalAmount * 100),
+            currency: 'INR',
+            receipt: `receipt_${Date.now()}`
         })
         const order = await Order.create({
-        user: req.userId,
-        paymentMethod,
-        deliveryAddress, 
-        totalAmount,
-        shopOrders,
-        razorpayOrderId:(await razorOrder).id,
-        payment:false
-    })
-    return res.status(200).json(new ApiResponse(200,{
-        razorOrder,
-        orderId:order._id
-    },"Online payment order fetched"))
+            user: req.userId,
+            paymentMethod,
+            deliveryAddress,
+            totalAmount,
+            shopOrders,
+            razorpayOrderId: (await razorOrder).id,
+            payment: false
+        })
+        return res.status(200).json(new ApiResponse(200, {
+            razorOrder,
+            orderId: order._id
+        }, "Online payment order fetched"))
     }
     const order = await Order.create({
         user: req.userId,
@@ -81,25 +81,71 @@ export const placeOrder = asyncHandler(async (req, res) => {
     })
     await order.populate("shopOrders.shopOrderItems.item", "name price quantity image")
     await order.populate("shopOrders.shop", "name")
+    await order.populate("shopOrders.owner", "fullName socketId")
+    await order.populate("user")
+
+    const io = req.app.get("io")
+    if (io) {
+        order.shopOrders.forEach(shopOrder => {
+            const ownerSocketId = shopOrder.owner.socketId;
+            
+            if (ownerSocketId) {
+                
+                io.to(ownerSocketId).emit("newOrder", {
+                    _id: order._id,
+                    paymentMethod: order.paymentMethod,
+                    user: order.user,
+                    shopOrder: shopOrder,
+                    createdAt: order.createdAt,
+                    deliveryAddress: order.deliveryAddress,
+                    payment: order.payment
+                });
+            }
+        });
+    }
+
     return res.status(201).json(new ApiResponse(201, order, "Order placed"))
 
 })
-export const verifyPayment=asyncHandler(async(req,res)=>{
-    const {razorpay_paymentId,orderId}=req.body;
-    const payment=await instance.payments.fetch(razorpay_paymentId);
-    if(!payment || payment.status!="captured"){
-        throw new ApiError(400,"Payment not captured")
+export const verifyPayment = asyncHandler(async (req, res) => {
+    const { razorpay_paymentId, orderId } = req.body;
+    const payment = await instance.payments.fetch(razorpay_paymentId);
+    if (!payment || payment.status != "captured") {
+        throw new ApiError(400, "Payment not captured")
     }
-    const order=await Order.findById(orderId)
-    if(!order){
-        throw new ApiError(400,"Order not found")
+    const order = await Order.findById(orderId)
+    if (!order) {
+        throw new ApiError(400, "Order not found")
     }
-    order.payment=true;
-    order.razorpayPaymentId=razorpay_paymentId
+    order.payment = true;
+    order.razorpayPaymentId = razorpay_paymentId
     await order.save()
-    await order.populate("shopOrders.shopItems.item","name price image")
-    await order.populate("shopOrders.shop","name")
-    return res.status(200).json(new ApiResponse(200,order,"Order verified successfully"))
+    await order.populate("shopOrders.shopOrderItems.item", "name price image")
+    await order.populate("shopOrders.shop", "name")
+    await order.populate("shopOrders.owner", "fullName socketId")
+    await order.populate("user")
+
+    const io=req.app.get("io")
+    if (io) {
+    order.shopOrders.forEach(shopOrder => {
+        const ownerSocketId = shopOrder.owner.socketId;
+        
+        if (ownerSocketId) {
+        
+            io.to(ownerSocketId).emit("newOrder", {
+                _id: order._id,
+                paymentMethod: order.paymentMethod,
+                user: order.user,
+                shopOrder: shopOrder,
+                createdAt: order.createdAt,
+                deliveryAddress: order.deliveryAddress,
+                payment: order.payment
+            });
+        }
+        
+    });
+}
+    return res.status(200).json(new ApiResponse(200, order, "Order verified successfully"))
 })
 
 export const getMyorders = asyncHandler(async (req, res) => {
@@ -332,66 +378,66 @@ export const getCurrOrder = asyncHandler(async (req, res) => {
         customerLocation.long = assignment.order.deliveryAddress.longitude
     }
     return res.status(200).json(
-        new ApiResponse(200,{
-        _id:assignment.order._id,
-        shop:assignment.shop,
-        user:assignment.order.user,
-        shopOrder,
-        deliveryAddress:assignment.order.deliveryAddress,
-        deliveryBoyLocation,
-        customerLocation
-    },"Current order has been fetched successfully")
-)
+        new ApiResponse(200, {
+            _id: assignment.order._id,
+            shop: assignment.shop,
+            user: assignment.order.user,
+            shopOrder,
+            deliveryAddress: assignment.order.deliveryAddress,
+            deliveryBoyLocation,
+            customerLocation
+        }, "Current order has been fetched successfully")
+    )
 })
-export const getOrderById=asyncHandler(async(req,res)=>{
-    const {orderId}=req.params
-    const order=await Order.findById(orderId).populate("user").populate({
-        path:"shopOrders.shop",
-        model:"Shop"
-    }).populate({path:"shopOrders.assignedDeliveryBoy",model:"User"})
-    .populate({path:"shopOrders.shopOrderItems.item",model:"Item"}).lean()
+export const getOrderById = asyncHandler(async (req, res) => {
+    const { orderId } = req.params
+    const order = await Order.findById(orderId).populate("user").populate({
+        path: "shopOrders.shop",
+        model: "Shop"
+    }).populate({ path: "shopOrders.assignedDeliveryBoy", model: "User" })
+        .populate({ path: "shopOrders.shopOrderItems.item", model: "Item" }).lean()
 
-    if(!order){
-        throw new ApiError(400,"Order not found")
+    if (!order) {
+        throw new ApiError(400, "Order not found")
     }
-    return res.status(200).json(new ApiResponse(200,order,"order fetched succesfully"))
+    return res.status(200).json(new ApiResponse(200, order, "order fetched succesfully"))
 })
-export const sendDeliveryOtp=asyncHandler(async(req,res)=>{
-    const {orderId,shopOrderId}=req.body;
-    const order=await Order.findById(orderId).populate("user")
-    if(!order){
-        throw new ApiError(400,"Order not found")
+export const sendDeliveryOtp = asyncHandler(async (req, res) => {
+    const { orderId, shopOrderId } = req.body;
+    const order = await Order.findById(orderId).populate("user")
+    if (!order) {
+        throw new ApiError(400, "Order not found")
     }
-    const shopOrder=order.shopOrders.id(shopOrderId)
-    if(!shopOrder){
-        throw new ApiError(400,"shopOrder not found")
+    const shopOrder = order.shopOrders.id(shopOrderId)
+    if (!shopOrder) {
+        throw new ApiError(400, "shopOrder not found")
     }
-    const otp=Math.floor(Math.random()*9000+1000).toString();
-    shopOrder.deliveryOtp=otp
-    shopOrder.otpExpires=Date.now() + 5*60*1000
+    const otp = Math.floor(Math.random() * 9000 + 1000).toString();
+    shopOrder.deliveryOtp = otp
+    shopOrder.otpExpires = Date.now() + 5 * 60 * 1000
     await order.save()
-    await sentDeliveryOtp(order.user,otp)
+    await sentDeliveryOtp(order.user, otp)
 
-    return res.status(200).json(new ApiResponse(200,{},"Otp sent successfully"))
+    return res.status(200).json(new ApiResponse(200, {}, "Otp sent successfully"))
 
 })
-export const verifyOtp=asyncHandler(async(req,res)=>{
-    const {orderId,shopOrderId,otp}=req.body;
-    const order=await Order.findById(orderId).populate("user")
-    const shopOrder=order.shopOrders.id(shopOrderId)
-    if(!order ||!shopOrder){
-        throw new ApiError(400,"Order or shopOrder not found")
+export const verifyOtp = asyncHandler(async (req, res) => {
+    const { orderId, shopOrderId, otp } = req.body;
+    const order = await Order.findById(orderId).populate("user")
+    const shopOrder = order.shopOrders.id(shopOrderId)
+    if (!order || !shopOrder) {
+        throw new ApiError(400, "Order or shopOrder not found")
     }
-    if(shopOrder.deliveryOtp!==otp||!shopOrder.otpExpires || shopOrder.otpExpires<Date.now()){
-        throw new ApiError(400,"Invalid or expired OTP")
+    if (shopOrder.deliveryOtp !== otp || !shopOrder.otpExpires || shopOrder.otpExpires < Date.now()) {
+        throw new ApiError(400, "Invalid or expired OTP")
     }
-    shopOrder.status="delivered"
-    shopOrder.deliveredAt=Date.now()
+    shopOrder.status = "delivered"
+    shopOrder.deliveredAt = Date.now()
     await order.save()
     await DeliveryAssignment.deleteOne({
         shopOrderId,
-        order:orderId,
-        assignedTo:shopOrder.assignedDeliveryBoy
+        order: orderId,
+        assignedTo: shopOrder.assignedDeliveryBoy
     })
-    return res.status(200).json(new ApiResponse(200,{},"Otp verified successfully"))
+    return res.status(200).json(new ApiResponse(200, {}, "Otp verified successfully"))
 })

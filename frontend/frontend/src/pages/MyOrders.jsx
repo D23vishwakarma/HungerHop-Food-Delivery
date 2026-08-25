@@ -5,7 +5,9 @@ import { Link } from 'react-router-dom'
 import { serverUrl } from '../App'
 import Navbar from '../components/Navbar'
 import { Package, MapPin, Wallet, Smartphone, Store, User, Receipt, ArrowRight } from 'lucide-react'
-import { setMyOrders } from '../redux/userSlice'
+import { setMyOrders,addMyOrders } from '../redux/userSlice'
+import { useEffect } from 'react'
+import { socket } from '../socket'
 
 const statusStyles = {
     "pending": "bg-gray-100 text-gray-600",
@@ -18,7 +20,7 @@ const statusOptions = ["pending", "preparing", "out for delivery", "delivered"]
 
 function MyOrders() {
     const dispatch = useDispatch()
-    const { userData, myOrders } = useSelector(state => state.user)
+    const { userData, myOrders} = useSelector(state => state.user)
     const isOwner = userData?.role === "restaurant"
     const [updatingId, setUpdatingId] = useState(null)
     const [availableBoysMap, setAvailableBoysMap] = useState({}) // keyed by shopOrderId
@@ -207,7 +209,7 @@ function MyOrders() {
 
                                                 {order.paymentMethod === "cod"
                                                     ? "Cash on Delivery"
-                                                    : "Online Payment"}
+                                                    : `Online Payment: ${order.payment?'Done':'pending'}`}
                                             </div>
                                         </div>
 

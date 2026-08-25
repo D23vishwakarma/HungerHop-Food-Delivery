@@ -193,7 +193,7 @@ function Checkout() {
             order_id:razorOrder.id,
             handler:async function (res) {
                 try {
-                    const result=await axios.post(`${serverUrl}/order/verify-payment`,{razorpay_paymentId:res.razorpay_paymentId,orderId},{withCredentials:true})
+                    const result=await axios.post(`${serverUrl}/order/verify-payment`,{razorpay_paymentId:res.razorpay_payment_id,orderId},{withCredentials:true})
                     dispatch(addMyOrders(result.data.data));
                     navigate("/order-placed", { state: { order: result.data.data } })
                 } catch (error) {
