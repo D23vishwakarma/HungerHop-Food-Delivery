@@ -5,12 +5,22 @@ import axios from 'axios'
 import Navbar from '../components/Navbar'
 import { Store, MapPin, IndianRupee, User, Phone, PackageSearch } from 'lucide-react'
 import DeliveryLiveTracking from '../components/DeliveryLiveTracking'
+import { socket } from '../socket'
 
 const orderStatusSteps = ["pending", "preparing", "out for delivery", "delivered"]
 
 function TrackOrder() {
     const { orderId } = useParams()
-    const [order, setOrder] = useState(undefined) // undefined = loading, null = not found
+    const [order, setOrder] = useState(undefined)
+    const [liveLocation,setLiveLocation]=useState({})
+
+    useEffect(()=>{
+        socket.on('updateDeliveryLocation',({deliveryBoyId,latitude,longitude})=>{
+            setLiveLocation(prev=>({
+                ...prev,[deliveryBoyId]:{lati:latitude,long:longitude}
+            }))
+        })
+    },[socket])
 
     const handleGetOrder = async () => {
         try {
@@ -38,7 +48,7 @@ function TrackOrder() {
         const hasBoyCoords = Array.isArray(boyCoords) && boyCoords.length === 2
 
         return {
-            deliveryBoyLocation: {
+            deliveryBoyLocation:liveLocation[shopOrder.assignedDeliveryBoy._id]|| {
                 lati: hasBoyCoords ? boyCoords[1] : null,
                 long: hasBoyCoords ? boyCoords[0] : null
             },
@@ -48,6 +58,7 @@ function TrackOrder() {
             }
         }
     }
+    
 
     return (
         <div className="min-h-screen bg-gray-50">

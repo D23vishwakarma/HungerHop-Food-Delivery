@@ -5,9 +5,8 @@ import { Link } from 'react-router-dom'
 import { serverUrl } from '../App'
 import Navbar from '../components/Navbar'
 import { Package, MapPin, Wallet, Smartphone, Store, User, Receipt, ArrowRight } from 'lucide-react'
-import { setMyOrders,addMyOrders } from '../redux/userSlice'
+import { setMyOrders } from '../redux/userSlice'
 import { useEffect } from 'react'
-import { socket } from '../socket'
 
 const statusStyles = {
     "pending": "bg-gray-100 text-gray-600",
@@ -20,10 +19,31 @@ const statusOptions = ["pending", "preparing", "out for delivery", "delivered"]
 
 function MyOrders() {
     const dispatch = useDispatch()
-    const { userData, myOrders} = useSelector(state => state.user)
+    const { userData, myOrders } = useSelector(state => state.user)
     const isOwner = userData?.role === "restaurant"
+    const isDelivery = userData?.role === "delivery"
     const [updatingId, setUpdatingId] = useState(null)
     const [availableBoysMap, setAvailableBoysMap] = useState({}) // keyed by shopOrderId
+    const [deliveryStats, setDeliveryStats] = useState(undefined) // undefined = loading
+
+    useEffect(() => {
+        if (!isDelivery) return
+
+        const fetchDeliveryStats = async () => {
+            try {
+                const result = await axios.get(
+                    `${serverUrl}/order/delivery-stats`,
+                    { withCredentials: true }
+                )
+                setDeliveryStats(result.data.data)
+            } catch (error) {
+                console.log(error)
+                setDeliveryStats({ completedDeliveries: 0 })
+            }
+        }
+
+        fetchDeliveryStats()
+    }, [isDelivery])
 
     const getRelevantShopOrders = (order) => {
         if (!isOwner) return order.shopOrders
@@ -90,19 +110,41 @@ function MyOrders() {
 
                     <div className="min-w-0">
                         <h1 className="text-xl sm:text-2xl font-bold text-gray-800 tracking-tight">
-                            {isOwner ? "Incoming Orders" : "My Orders"}
+                            {isOwner ? "Incoming Orders" : isDelivery ? "My Deliveries" : "My Orders"}
                         </h1>
 
                         <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
                             {isOwner
                                 ? "Orders placed by customers for your shop"
-                                : "Track and review your past orders"}
+                                : isDelivery
+                                    ? "Your delivery activity so far"
+                                    : "Track and review your past orders"}
                         </p>
                     </div>
                 </div>
 
                 {/* Loading */}
-                {!myOrders ? (
+                {/* Delivery partner — dedicated stats view instead of the order list */}
+                {isDelivery ? (
+                    deliveryStats === undefined ? (
+                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm h-32 animate-pulse" />
+                    ) : (
+                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sm:p-8 flex items-center gap-5">
+                            <div className="bg-green-500 w-14 h-14 rounded-2xl flex items-center justify-center shrink-0">
+                                <Package className="w-7 h-7 text-white" />
+                            </div>
+                            <div>
+                                <p className="text-3xl sm:text-4xl font-bold text-gray-900">
+                                    {deliveryStats.completedDeliveries}
+                                </p>
+                                <p className="text-sm text-gray-500 mt-0.5">
+                                    Total deliveries completed
+                                </p>
+                            </div>
+                        </div>
+                    )
+
+                ) : !myOrders ? (
                     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm py-14 sm:py-16 text-center text-gray-400">
                         Loading orders...
                     </div>
@@ -153,7 +195,7 @@ function MyOrders() {
                                     0
                                 )
 
-                            // order counts as "trackable" for the customer if at least one
+                            // ✅ order counts as "trackable" for the customer if at least one
                             // relevant shop order hasn't been delivered yet
                             const isTrackable = !isOwner && relevantShopOrders.some(so => so.status !== "delivered")
 
@@ -209,7 +251,7 @@ function MyOrders() {
 
                                                 {order.paymentMethod === "cod"
                                                     ? "Cash on Delivery"
-                                                    : `Online Payment: ${order.payment?'Done':'pending'}`}
+                                                    : "Online Payment"}
                                             </div>
                                         </div>
 
@@ -468,7 +510,7 @@ function MyOrders() {
                                         {isTrackable && (
                                             <Link
                                                 to={`/track-order/${order._id}`}
-                                                className="-ml-1 w-30 flex items-center justify-center gap-1 bg-orange-400/10 hover:bg-orange-500/20 text-orange-500 text-sm font-semibold py-2 rounded-lg transition-colors"
+                                                className="w-full flex items-center justify-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold py-2.5 rounded-lg transition-colors"
                                             >
                                                 Track Order
                                                 <ArrowRight className="w-4 h-4" />

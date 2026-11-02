@@ -8,7 +8,6 @@ import { User } from "../models/user.model.js";
 import { sentDeliveryOtp } from "../utils/mail.js";
 import Razorpay from 'razorpay';
 import dotenv from 'dotenv'
-import { orderRouter } from "../routes/order.route.js";
 dotenv.config()
 
 let instance = new Razorpay({
@@ -88,9 +87,9 @@ export const placeOrder = asyncHandler(async (req, res) => {
     if (io) {
         order.shopOrders.forEach(shopOrder => {
             const ownerSocketId = shopOrder.owner.socketId;
-            
+
             if (ownerSocketId) {
-                
+
                 io.to(ownerSocketId).emit("newOrder", {
                     _id: order._id,
                     paymentMethod: order.paymentMethod,
@@ -125,26 +124,26 @@ export const verifyPayment = asyncHandler(async (req, res) => {
     await order.populate("shopOrders.owner", "fullName socketId")
     await order.populate("user")
 
-    const io=req.app.get("io")
+    const io = req.app.get("io")
     if (io) {
-    order.shopOrders.forEach(shopOrder => {
-        const ownerSocketId = shopOrder.owner.socketId;
-        
-        if (ownerSocketId) {
-        
-            io.to(ownerSocketId).emit("newOrder", {
-                _id: order._id,
-                paymentMethod: order.paymentMethod,
-                user: order.user,
-                shopOrder: shopOrder,
-                createdAt: order.createdAt,
-                deliveryAddress: order.deliveryAddress,
-                payment: order.payment
-            });
-        }
-        
-    });
-}
+        order.shopOrders.forEach(shopOrder => {
+            const ownerSocketId = shopOrder.owner.socketId;
+
+            if (ownerSocketId) {
+
+                io.to(ownerSocketId).emit("newOrder", {
+                    _id: order._id,
+                    paymentMethod: order.paymentMethod,
+                    user: order.user,
+                    shopOrder: shopOrder,
+                    createdAt: order.createdAt,
+                    deliveryAddress: order.deliveryAddress,
+                    payment: order.payment
+                });
+            }
+
+        });
+    }
     return res.status(200).json(new ApiResponse(200, order, "Order verified successfully"))
 })
 
@@ -247,6 +246,22 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
                 broadcastedTo: candidates,
                 status: "broadcasted"
             });
+            const io = req.app.get("io")
+            if (io) {
+                availableBoys.forEach(boy => {
+                    const boysocketId = boy.socketId
+                    if (boysocketId) {
+                        io.to(boysocketId).emit("new-assignment", {
+                            assignmentId: deliveryAssignment._id,
+                            orderId: order._id,
+                            shopId: shopOrder.shop,
+                            deliveryAddress: order.deliveryAddress,
+                            items: shopOrder.shopOrderItems,
+                            subtotal: shopOrder.subtotal
+                        })
+                    }
+                })
+            }
 
             deliveryBoysPayload = availableBoys.map(b => ({
                 id: b._id,
@@ -269,12 +284,27 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
         shopOrder.assignment = deliveryAssignment._id;
     }
 
+
+
     await order.save();
 
     await order.populate("shopOrders.shop", "name");
     await order.populate("shopOrders.assignedDeliveryBoy", "fullName email phone");
 
     const updatedShopOrder = order.shopOrders.find(o => o.shop._id.toString() === shopId);
+
+    const io = req.app.get("io");
+    if (io) {
+        const customer = await User.findById(order.user);
+        const userSocketId = customer?.socketId;
+        if (userSocketId) {
+            io.to(userSocketId).emit("update-status", {
+                orderId: order._id,
+                shopId,
+                status: updatedShopOrder.status
+            });
+        }
+    }
 
     return res.status(200).json(new ApiResponse(200, {
         shopOrder: updatedShopOrder,
@@ -290,7 +320,7 @@ export const deliveryBoyAssignment = asyncHandler(async (req, res) => {
     }).populate("shop").populate("order")
 
     const formatted = assignments
-        .filter(b => b.shop && b.order)   // ✅ skip any assignment with a deleted/missing shop or order
+        .filter(b => b.shop && b.order)   // skiping any assignment with a deleted/missing shop or order
         .map(b => {
             const shopOrder = b.order.shopOrders.find(
                 a => a._id.toString() === b.shopOrderId.toString()
@@ -301,7 +331,9 @@ export const deliveryBoyAssignment = asyncHandler(async (req, res) => {
                 shopName: b.shop.name,
                 deliveryAddress: b.order.deliveryAddress,
                 items: shopOrder?.shopOrderItems || [],
-                subtotal: shopOrder?.subtotal || 0
+                subtotal: shopOrder?.subtotal || 0,
+                paymentMethod: b.order.paymentMethod,
+                payment: b.order.payment
             }
         })
 
@@ -385,7 +417,9 @@ export const getCurrOrder = asyncHandler(async (req, res) => {
             shopOrder,
             deliveryAddress: assignment.order.deliveryAddress,
             deliveryBoyLocation,
-            customerLocation
+            customerLocation,
+            paymentMethod: assignment.order.paymentMethod,
+            payment: assignment.order.payment
         }, "Current order has been fetched successfully")
     )
 })
@@ -440,4 +474,47 @@ export const verifyOtp = asyncHandler(async (req, res) => {
         assignedTo: shopOrder.assignedDeliveryBoy
     })
     return res.status(200).json(new ApiResponse(200, {}, "Otp verified successfully"))
+})
+export const getTodaysDelivery = asyncHandler(async (req, res) => {
+    const startday = new Date();
+    startday.setHours(0, 0, 0, 0)
+    const orders = await Order.find({
+        "shopOrders.assignedDeliveryBoy": req.userId,
+        "shopOrders.status": "delivered",
+        "shopOrders.deliveredAt": { $gte: startday }
+    })
+    let todaysDeliveries = []
+    orders.forEach(order => {
+        order.shopOrders.forEach(shop => {
+            if (
+                shop.assignedDeliveryBoy?.toString() === req.userId.toString() &&
+                shop.status == "delivered" &&
+                shop.deliveredAt &&
+                shop.deliveredAt >= startday
+            ) {
+                todaysDeliveries.push(shop)
+            }
+        })
+    })
+    let stats = {}
+    todaysDeliveries.forEach(shop => {
+        const hour = new Date(shop.deliveredAt).getHours()
+        stats[hour] = (stats[hour] || 0) + 1
+    })
+    let formattedStats = Object.keys(stats).map(hour => ({
+        hour: parseInt(hour),
+        count: stats[hour]
+    }))
+    formattedStats.sort((a, b) => a.hour - b.hour);
+    return res.status(200).json(new ApiResponse(200, formattedStats, "Todays deliveries fetched"))   // ✅ added `new`
+})
+export const getDeliveryStats = asyncHandler(async (req, res) => {
+    const completedDeliveries = await DeliveryAssignment.countDocuments({
+        assignedTo: req.userId,
+        status: "delivered"
+    })
+ 
+    return res.status(200).json(new ApiResponse(200, {
+        completedDeliveries
+    }, "Delivery stats fetched successfully"))
 })

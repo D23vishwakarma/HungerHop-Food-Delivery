@@ -1,6 +1,6 @@
 import express from 'express'
 import { verifyAuth } from '../middlewares/auth.middleware.js';
-import { createItem, deleteItem, getItem, getItemByCity, getItemByShop, searchItems, updateItem } from '../controllers/item.controller.js';
+import { createItem, deleteItem, getItem, getItemByCity, getItemByShop, rating, searchItems, updateItem } from '../controllers/item.controller.js';
 import upload from '../middlewares/multer.middleware.js';
 export const itemRouter=express.Router();
 itemRouter.post("/create",verifyAuth,upload.single("image"),createItem);
@@ -10,4 +10,5 @@ itemRouter.delete("/delete/:itemId",verifyAuth,deleteItem);
 itemRouter.get("/getbycity/:city",verifyAuth,getItemByCity);
 itemRouter.get("/getbyshop/:shopId",verifyAuth,getItemByShop);
 itemRouter.get("/searchitems",verifyAuth,searchItems);
+itemRouter.post("/rating",verifyAuth,rating);
 

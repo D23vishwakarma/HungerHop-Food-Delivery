@@ -3,12 +3,12 @@ import { User } from "./models/user.model.js"
 export const socketHandler = (io) => {
     io.on("connection", (socket) => {
         socket.on('identity', async ({ userId }) => {
-            console.log('IDENTITY received for user:', userId, 'socket:', socket.id)
+           
             try {
                 const user = await User.findByIdAndUpdate(userId, {
                     socketId: socket.id, isOnline: true
                 }, { new: true })
-                console.log('Saved socketId on user doc:', user?.socketId)
+               
             } catch (error) {
                 console.log(error)
             }
@@ -25,5 +25,23 @@ export const socketHandler = (io) => {
                 console.log(error)
             }
         })
+        socket.on('updatelocation',async({latitude,longitude,userId})=>{
+            try {
+                const user=await User.findByIdAndUpdate(userId,{
+                    location:{
+                        type:'point',
+                        coordinates:[longitude,latitude]
+                    },
+                    isOnline:true,
+                    socketId:socket.id
+                })
+                if(user){
+                    io.emit('updateDeliveryLocation',{deliveryBoyId:userId,latitude,longitude})
+                }
+            } catch (error) {
+                console.log(error)
+            }
+        })
+
     })
 }

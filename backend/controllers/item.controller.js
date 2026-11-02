@@ -2,6 +2,7 @@ import { ApiError } from "../config/apierror.js";
 import { ApiResponse } from "../config/apiresponse.js";
 import { asyncHandler } from "../config/asynchandler.js";
 import { Item } from "../models/items.model.js";
+import { Order } from "../models/order.model.js";
 import { Shop } from "../models/shop.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
@@ -119,3 +120,54 @@ export const searchItems=asyncHandler(async(req,res)=>{
     return res.status(200).json(new ApiResponse(200,items,"Items fetched successfully"))
 
 })
+export const rating = asyncHandler(async (req, res) => {
+    const { rating, itemId, orderId, shopOrderId } = req.body;
+    
+    if (!itemId || !rating || !orderId || !shopOrderId) {
+        throw new ApiError(400, "itemId, rating, orderId and shopOrderId are required");
+    }
+    if (rating < 1 || rating > 5) {
+        throw new ApiError(400, "Rating should be between 1 and 5");
+    }
+    const order = await Order.findOne({ _id: orderId, user: req.userId });
+    if (!order) {
+        throw new ApiError(400, "Order not found");
+    }
+
+    const shopOrder = order.shopOrders.id(shopOrderId);
+    if (!shopOrder || shopOrder.status !== "delivered") {
+        throw new ApiError(400, "You can only rate items after delivery");
+    }
+
+    const itemWasOrdered = shopOrder.shopOrderItems.some(
+        i => i.item.toString() === itemId
+    );
+    if (!itemWasOrdered) {
+        throw new ApiError(400, "This item was not part of that order");
+    }
+
+    const item = await Item.findById(itemId);
+    if (!item) {
+        throw new ApiError(400, "Item not found");
+    }
+
+    item.ratings = item.ratings || [];
+    const alreadyRated = item.ratings.find(
+        r => r.user.toString() === req.userId && r.order.toString() === orderId
+    );
+    if (alreadyRated) {
+        throw new ApiError(400, "You've already rated this item for this order");
+    }
+
+    item.ratings.push({ user: req.userId, order: orderId, value: rating });
+
+    const newCount = item.ratings.length;
+    const newAvg = item.ratings.reduce((sum, r) => sum + r.value, 0) / newCount;
+
+    item.rating.count = newCount;
+    item.rating.average = newAvg;
+
+    await item.save();
+
+    return res.status(200).json(new ApiResponse(200, item, "Rating submitted"));
+});

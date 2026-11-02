@@ -1,6 +1,6 @@
 import express from 'express'
 import { verifyAuth } from '../middlewares/auth.middleware.js';
-import { acceptOrder, deliveryBoyAssignment, getCurrOrder, getMyorders, getOrderById, placeOrder, sendDeliveryOtp, updateOrderStatus, verifyOtp, verifyPayment } from '../controllers/order.controller.js';
+import { acceptOrder, deliveryBoyAssignment, getCurrOrder, getDeliveryStats, getMyorders, getOrderById, getTodaysDelivery, placeOrder, sendDeliveryOtp, updateOrderStatus, verifyOtp, verifyPayment } from '../controllers/order.controller.js';
 export const orderRouter=express.Router();
 orderRouter.post("/place-order",verifyAuth,placeOrder)
 orderRouter.get("/myorders",verifyAuth,getMyorders)
@@ -12,3 +12,5 @@ orderRouter.get("/getorderbyid/:orderId",verifyAuth,getOrderById);
 orderRouter.post("/senddeliveryotp",verifyAuth,sendDeliveryOtp);
 orderRouter.post("/verify-otp",verifyAuth,verifyOtp);
 orderRouter.post("/verify-payment",verifyAuth,verifyPayment);
+orderRouter.get('/todaysdelivery',verifyAuth,getTodaysDelivery);
+orderRouter.get('/delivery-stats',verifyAuth,getDeliveryStats)

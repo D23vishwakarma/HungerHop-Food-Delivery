@@ -27,6 +27,7 @@ function DeliveryDashBoard() {
     const [sendingOtp, setSendingOtp] = useState(false)
     const [verifyingOtp, setVerifyingOtp] = useState(false)
     const [otpError, setOtpError] = useState("")
+    const [todaysStats, setTodaysStats] = useState(undefined) // undefined = loading, [] = no deliveries yet
 
     const fetchAssignments = async () => {
         try {
@@ -64,6 +65,20 @@ function DeliveryDashBoard() {
         return () => clearInterval(interval)
     }, [])
 
+    useEffect(() => {
+        if (userData?.role !== "delivery") return
+        const fetchTodaysStats = async () => {
+            try {
+                const result = await axios.get(`${serverUrl}/order/todaysdelivery`, { withCredentials: true })
+                setTodaysStats(result.data.data || [])
+            } catch (error) {
+                console.log(error)
+                setTodaysStats([])
+            }
+        }
+        fetchTodaysStats()
+    }, [userData?.role])
+
     const handleAccept = async (assignmentId) => {
         setAcceptingId(assignmentId)
         try {
@@ -92,7 +107,7 @@ function DeliveryDashBoard() {
         setOtpError("")
         try {
             await axios.post(
-                `${serverUrl}/order/senddeliveryotp`,
+                `${serverUrl}/order/send-delivery-otp`,
                 { orderId: currOrder._id, shopOrderId: currOrder.shopOrder._id },
                 { withCredentials: true }
             )
@@ -110,7 +125,7 @@ function DeliveryDashBoard() {
         setOtpError("")
         try {
             await axios.post(
-                `${serverUrl}/order/verify-otp`,
+                `${serverUrl}/order/verify-delivery-otp`,
                 { orderId: currOrder._id, shopOrderId: currOrder.shopOrder._id, otp: otpInput },
                 { withCredentials: true }
             )
@@ -154,6 +169,38 @@ function DeliveryDashBoard() {
                             : "New pickups appear here the moment a nearby shop needs a rider."}
                     </p>
                 </div>
+
+                {/* Today's deliveries — hourly breakdown */}
+                {todaysStats !== undefined && (
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-5">
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">
+                            Today's Deliveries {todaysStats.length > 0 && `· ${todaysStats.reduce((sum, s) => sum + s.count, 0)} total`}
+                        </p>
+
+                        {todaysStats.length === 0 ? (
+                            <p className="text-sm text-gray-400">No deliveries completed today yet.</p>
+                        ) : (
+                            <div className="flex items-end gap-2 h-28">
+                                {todaysStats.map((s) => {
+                                    const maxCount = Math.max(...todaysStats.map(x => x.count))
+                                    const heightPct = (s.count / maxCount) * 100
+                                    const hourLabel = s.hour === 0 ? "12 AM" : s.hour < 12 ? `${s.hour} AM` : s.hour === 12 ? "12 PM" : `${s.hour - 12} PM`
+
+                                    return (
+                                        <div key={s.hour} className="flex-1 flex flex-col items-center justify-end h-full">
+                                            <span className="text-xs font-semibold text-gray-700 mb-1">{s.count}</span>
+                                            <div
+                                                className="w-full bg-orange-400 rounded-t-md transition-all"
+                                                style={{ height: `${heightPct}%`, minHeight: "6px" }}
+                                            />
+                                            <span className="text-[10px] text-gray-400 mt-1.5 whitespace-nowrap">{hourLabel}</span>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        )}
+                    </div>
+                )}
 
                 {/* Still loading initial state */}
                 {currOrder === undefined || !assignments ? (

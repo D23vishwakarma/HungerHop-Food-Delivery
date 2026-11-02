@@ -80,6 +80,14 @@ const userSlice = createSlice({
         setSearchItems: (state, action) => {
             state.searchItems = action.payload
         },
+        resetUserState: (state) => {
+            state.userData = null
+            state.shops = null
+            state.items = null
+            state.cartItems = []
+            state.myOrders = []
+            state.searchItems = null
+        },
     }
 })
 
@@ -97,7 +105,8 @@ export const {
     setMyOrders,
     addMyOrders,
     setSearchItems,
-    setSocketConnected
+    setSocketConnected,
+    resetUserState
 } = userSlice.actions
 
 export default userSlice.reducer
